@@ -10,6 +10,8 @@ exports.readMachine = async (req, res) => {
     if (permissionArray.includes("admin")) {
       const companyId = req.body.companyId;
       result = await readMachineService.readMachine(req, res, companyId);
+    } else if (permissionArray.includes("staffAdmin")) {
+      result = await readMachineService.readCompanyMachine(req, res, companyId);
     } else result = { success: false, message: "Permission access denied" };
 
     return res.status(result.success ? 200 : 400).send(result);

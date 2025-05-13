@@ -1,7 +1,7 @@
 const mysql = require("mysql");
 const fs = require("fs");
 
-const ca = fs.readFileSync("DigiCertGlobalRootCA.crt.pem");
+// const ca = fs.readFileSync("DigiCertGlobalRootCA.crt.pem");
 
 const connection = mysql.createConnection({
   host: process.env.HOST,

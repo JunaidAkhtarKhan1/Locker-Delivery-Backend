@@ -143,6 +143,81 @@ const paginate = async (
 
   return { data: dataResult, pagination };
 };
+const paginateOneJoinWhere = async (
+  tableName,
+  page,
+  limit,
+  search = null,
+  startDate = null,
+  endDate = null,
+  joinName,
+  joinIdName,
+  sortId,
+  companyId
+) => {
+  const offset = (page - 1) * limit;
+
+  // Base queries
+  let countQuery = `SELECT COUNT(*) AS totalRecords FROM ?? LEFT JOIN ?? USING (??)`;
+  let dataQuery = `SELECT * FROM ?? LEFT JOIN ?? USING (??)`;
+
+  const queryParams = [tableName, joinName, joinIdName];
+  const countParams = [...queryParams]; // Separate count params
+
+  const whereClauses = [];
+  const whereValues = [];
+
+  // WHERE conditions
+  if (companyId) {
+    whereClauses.push("companyId = ?");
+    whereValues.push(companyId);
+  }
+
+  if (search) {
+    const columns = await dbConditionalQuery(`SHOW COLUMNS FROM ??`, [
+      tableName,
+    ]);
+    const searchClauses = columns.map((column) => `\`${column.Field}\` LIKE ?`);
+    const searchValues = columns.map(() => `%${search}%`);
+    whereClauses.push(`(${searchClauses.join(" OR ")})`);
+    whereValues.push(...searchValues);
+  }
+
+  if (startDate && endDate) {
+    whereClauses.push("timestamp BETWEEN ? AND ?");
+    whereValues.push(startDate, endDate);
+  }
+
+  // Add WHERE clause
+  if (whereClauses.length > 0) {
+    const whereClause = " WHERE " + whereClauses.join(" AND ");
+    countQuery += whereClause;
+    dataQuery += whereClause;
+  }
+
+  // Add ORDER BY, LIMIT, OFFSET
+  dataQuery += " ORDER BY ?? DESC LIMIT ? OFFSET ?";
+  const dataParams = [...queryParams, ...whereValues, sortId, limit, offset];
+  const finalCountParams = [...countParams, ...whereValues];
+
+  // Execute Queries
+  const countResult = await dbConditionalQuery(countQuery, finalCountParams);
+  const totalRecords = countResult[0].totalRecords;
+  const totalPages = Math.ceil(totalRecords / limit);
+
+  const dataResult = await dbConditionalQuery(dataQuery, dataParams);
+
+  return {
+    data: dataResult,
+    pagination: {
+      page,
+      limit,
+      totalRecords,
+      totalPages,
+    },
+  };
+};
+
 const paginateOneJoin = async (
   tableName,
   page,
@@ -737,4 +812,5 @@ module.exports = {
   generateUniqueBlobName,
   generateBlobUrl,
   handleMulterUpload,
+  paginateOneJoinWhere,
 };

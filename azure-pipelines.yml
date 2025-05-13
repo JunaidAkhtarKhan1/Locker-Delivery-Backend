@@ -1,0 +1,28 @@
+# Docker
+# Build and push an image to Azure Container Registry
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: DockerInstaller@0
+    inputs:
+      dockerVersion: "20.10.13"
+
+  - task: Bash@3
+    inputs:
+      targetType: "inline"
+      script: |
+        docker build -t intex.azurecr.io/cashlessvendapi:$(Build.BuildId) .
+        az acr login --name intex.azurecr.io -u intex -p $(password)
+        docker push intex.azurecr.io/cashlessvendapi:$(Build.BuildId)
+  - task: AzureWebAppContainer@1
+    inputs:
+      azureSubscription: "IX internal Dev(1)(6c1a91d3-c484-4142-9c90-aea55ac72fb1)"
+      appName: "cashlessvendapi"
+      containers: "intex.azurecr.io/cashlessvendapi:$(Build.BuildId)"
+      appSettings: "-DOCKER_CUSTOM_IMAGE_NAME intex.azurecr.io/cashlessvendapi:$(Build.BuildId) -DOCKER_REGISTRY_SERVER_PASSWORD $(password) -DOCKER_REGISTRY_SERVER_URL https://intex.azurecr.io -DOCKER_REGISTRY_SERVER_USERNAME intex"

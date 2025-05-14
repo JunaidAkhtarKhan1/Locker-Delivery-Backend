@@ -1,4 +1,4 @@
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const fs = require("fs");
 
 // const ca = fs.readFileSync("DigiCertGlobalRootCA.crt.pem");

@@ -9,6 +9,7 @@ exports.getAllRolesManagement = async (req, res) => {
       permissionArray.includes("superAdmin") ||
       permissionArray.includes("admin")
     ) {
+      const companyId = req.query.companyId;
       result = await getRolesManagementService.getRolesManagement(
         req,
         res,

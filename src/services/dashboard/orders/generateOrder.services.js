@@ -15,7 +15,7 @@ const generateOrderService = {
       const checkMachineQuery = `
         SELECT COUNT(*) AS availableColumns
         FROM machineLockers
-        WHERE machineId = ${machineId} AND lockerStatus = 'empty'
+        WHERE machineId = ${machineId} AND machineStatus = 1 AND lockerStatus = 'empty'
       `;
 
       const checkMachineCount = await dbQuery(checkMachineQuery);
@@ -81,7 +81,7 @@ const generateOrderService = {
       const assignLockersQuery = `
         SELECT machineLockerId
         FROM machineLockers
-        WHERE machineId = ${machineId} AND lockerStatus = 'empty'
+        WHERE machineId = ${machineId} AND machineStatus = 1 AND lockerStatus = 'empty'
         LIMIT ${barcodeNumbers.length}
       `;
       const assignLockersResult = await dbQuery(assignLockersQuery);
@@ -111,7 +111,8 @@ const generateOrderService = {
 
       return {
         success: true,
-        data: {},
+        message: "Orders generated successfully.",
+        orderId: orderId,
       };
     } catch (error) {
       console.error("Error generating orders:", error);

@@ -13,8 +13,7 @@ exports.generateOrders = async (req, res) => {
     } else if (permissionArray.includes("admin")) {
       const companyId = req.query.companyId;
       result = await generateOrdersService.generateOrders(req, res, companyId);
-    } else if (permissionArray.includes("machine")) {
-      const companyId = req.query.companyId;
+    } else if (permissionArray.includes("staffAdmin")) {
       result = await generateOrdersService.generateOrders(req, res, companyId);
     } else result = { success: false, message: "Permission access denied" };
 

@@ -289,6 +289,94 @@ const paginateOneJoin = async (
 
   return { data: dataResult, pagination };
 };
+
+const paginatetwoJoinWhere = async (
+  tableName,
+  page,
+  limit,
+  search = null,
+  startDate = null,
+  endDate = null,
+  joinName,
+  joinIdName,
+  joinName2,
+  joinIdName2,
+  companyId
+) => {
+  const offset = (page - 1) * limit;
+
+  // Base queries
+  let countQuery = `SELECT COUNT(*) AS totalRecords FROM ?? JOIN ?? USING (??) JOIN ?? USING (??)`;
+  let dataQuery = `SELECT * FROM ?? JOIN ?? USING (??) JOIN ?? USING (??)`;
+  const queryParams = [
+    tableName,
+    joinName,
+    joinIdName,
+    joinName2,
+    joinIdName2,
+    // companyId,
+  ];
+  const whereClauses = [];
+  const whereValues = [];
+
+  if (companyId) {
+    whereClauses.push(`${joinName2}.companyId = ?`);
+    queryParams.push(companyId);
+  }
+
+  // Add Search Functionality
+  if (search) {
+    const colomns = await dbConditionalQuery(`SHOW COLUMNS FROM ??`, [
+      tableName,
+    ]);
+    const searchClauses = colomns.map((column) => `\`${column.Field}\` LIKE ?`);
+    const searchParams = colomns.map(() => `%${search}%`);
+
+    whereClauses.push(`(${searchClauses.join(" OR ")})`);
+    queryParams.push(...searchParams);
+  }
+
+  // Add Date Filter
+  if (startDate && endDate) {
+    whereClauses.push("timestamp BETWEEN ? AND ?");
+    queryParams.push(startDate, endDate);
+  }
+
+  // Append WHERE clause if conditions exist
+  if (whereClauses.length > 0) {
+    const whereClause = " WHERE " + whereClauses.join(" AND ");
+    countQuery += whereClause;
+    dataQuery += whereClause;
+  }
+
+  // Add LIMIT and OFFSET
+  dataQuery += ` LIMIT ? OFFSET ?`;
+  queryParams.push(limit, offset);
+
+  // Execute Queries
+  const countResult = await dbConditionalQuery(
+    countQuery,
+    queryParams.slice(0, -2)
+  ); // Exclude LIMIT and OFFSET for count query
+
+  console.log(countResult);
+
+  const totalRecords = countResult[0].totalRecords;
+  const totalPages = Math.ceil(totalRecords / limit);
+
+  const dataResult = await dbConditionalQuery(dataQuery, queryParams);
+
+  // Pagination Object
+  const pagination = {
+    page,
+    limit,
+    totalRecords,
+    totalPages,
+  };
+
+  return { data: dataResult, pagination };
+};
+
 const paginatetwoJoin = async (
   tableName,
   page,
@@ -813,4 +901,5 @@ module.exports = {
   generateBlobUrl,
   handleMulterUpload,
   paginateOneJoinWhere,
+  paginatetwoJoinWhere,
 };

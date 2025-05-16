@@ -3,6 +3,8 @@ const {
   paginateOneJoin,
   paginate,
   paginatefiveJoin,
+  paginatetwoJoinWhere,
+  paginatetwoJoin,
 } = require("../../../utils/dbFunctions");
 
 const orderService = {
@@ -147,83 +149,36 @@ const orderService = {
     };
   },
   adminOrderList: async (req, res, companyId) => {
-    const {
-      startDate,
-      endDate,
-      sort,
-      limit,
-      machineId,
-      paymentMethodId,
-      bankId,
-      transactionType,
-      transactionStatus,
-      startPrice,
-      endPrice,
-    } = req.body;
-    let isCompany = req.body.isCompany;
-    if (isCompany === undefined) isCompany = false;
+    const tableName = "orders"; // Default table
+    const joinName = "customers";
+    const joinIdName = "customerId";
+    const joinName2 = "machines";
+    const joinIdName2 = "machineId";
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 10;
 
-    let query = `
-      SELECT orderId, companyName, machineName, paymentName, price, transactionStatus,
-             companyUserId, userMobileNumber, transactionType, timestamp
-      FROM orders
-      INNER JOIN paymentmodes USING (paymentId)
-      INNER JOIN paymentmethods USING (paymentMethodId)
-      INNER JOIN machines USING (machineId)
-      INNER JOIN companies USING (companyId)
-      LEFT JOIN users USING (userId)`;
+    // Extract search and filter parameters
+    const search = req.query.search || null; // Single search term across all fields
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
 
-    query += `
-        WHERE
-          ${(startDate && `timestamp >= '${startDate} 00:00:00'`) || ""}
-          ${
-            (startDate &&
-              endDate &&
-              `AND timestamp <= '${endDate} 23:59:59'`) ||
-            ""
-          }
-          ${(companyId && `AND companyId = ${companyId}`) || ""}
-          ${(machineId && `AND machineId = ${machineId}`) || ""}
-          ${
-            (paymentMethodId && `AND paymentMethodId = ${paymentMethodId}`) ||
-            ""
-          }
-          ${(bankId && `AND bankId = ${bankId}`) || ""}
-          ${
-            (transactionStatus &&
-              transactionStatus.length > 0 &&
-              `AND transactionStatus IN ('${transactionStatus.join(
-                "','"
-              )}')`) ||
-            ""
-          }
-          ${(startPrice && `AND price >= '${startPrice}'`) || ""}
-          ${(endPrice && `AND price <= '${endPrice}'`) || ""}`;
-
-    query +=
-      (isCompany && `AND transactionType IN ('debit-both', 'debit-company')`) ||
-      "";
-    query +=
-      (isCompany === false &&
-        `AND ((transactionType IS NULL) OR (transactionType IN ('debit', 'debit-recharge','debit-both')))`) ||
-      "";
-
-    query +=
-      sort !== undefined
-        ? `
-        ORDER BY orderId ${sort ? "ASC" : "DESC"}`
-        : "";
-
-    query += limit ? ` LIMIT ${limit}` : "";
-
-    console.log(query);
-
-    const result = await dbQuery(query);
-
-    return {
-      success: true,
-      result,
-    };
+    try {
+      const result = await paginatetwoJoin(
+        tableName,
+        page,
+        limit,
+        search,
+        startDate,
+        endDate,
+        joinName,
+        joinIdName,
+        joinName2,
+        joinIdName2
+      );
+      return { success: true, ...result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   },
 
   partnerOrderList: async (req, res, companyId) => {
@@ -306,97 +261,11 @@ const orderService = {
     };
   },
   staffOrderList: async (req, res, companyId) => {
-    const {
-      startDate,
-      endDate,
-      sort,
-      limit,
-      machineId,
-      paymentMethodId,
-      bankId,
-      transactionType,
-      transactionStatus,
-      startPrice,
-      endPrice,
-    } = req.body;
-    let isCompany = req.body.isCompany;
-    if (isCompany === undefined) isCompany = false;
-
-    let query = `
-      SELECT orderId, companyName, machineName, paymentName, price, transactionStatus,
-             companyUserId, userMobileNumber, transactionType, timestamp
-      FROM orders
-      INNER JOIN paymentmodes USING (paymentId)
-      INNER JOIN paymentmethods USING (paymentMethodId)
-      INNER JOIN machines USING (machineId)
-      INNER JOIN companies USING (companyId)
-      LEFT JOIN users USING (userId)`;
-
-    query += `
-        WHERE
-          ${(startDate && `timestamp >= '${startDate} 00:00:00'`) || ""}
-          ${
-            (startDate &&
-              endDate &&
-              `AND timestamp <= '${endDate} 23:59:59'`) ||
-            ""
-          }
-          ${(companyId && `AND companyId = ${companyId}`) || ""}
-          ${(machineId && `AND machineId = ${machineId}`) || ""}
-          ${
-            (paymentMethodId && `AND paymentMethodId = ${paymentMethodId}`) ||
-            ""
-          }
-          ${(bankId && `AND bankId = ${bankId}`) || ""}
-          ${
-            (transactionStatus &&
-              transactionStatus.length > 0 &&
-              `AND transactionStatus IN ('${transactionStatus.join(
-                "','"
-              )}')`) ||
-            ""
-          }
-          ${(startPrice && `AND price >= '${startPrice}'`) || ""}
-          ${(endPrice && `AND price <= '${endPrice}'`) || ""}`;
-
-    query +=
-      (isCompany && `AND transactionType IN ('debit-both', 'debit-company')`) ||
-      "";
-    query +=
-      (isCompany === false &&
-        `AND ((transactionType IS NULL) OR (transactionType IN ('debit', 'debit-recharge','debit-both')))`) ||
-      "";
-
-    query +=
-      sort !== undefined
-        ? `
-        ORDER BY orderId ${sort ? "ASC" : "DESC"}`
-        : "";
-
-    query += limit ? ` LIMIT ${limit}` : "";
-
-    console.log(query);
-
-    const result = await dbQuery(query);
-
-    return {
-      success: true,
-      result,
-    };
-  },
-  adminOrdersList: async (req, res, companyId) => {
     const tableName = "orders"; // Default table
-    const joinName = "paymentmodes";
-    const joinIdName = "paymentId";
-    const joinName2 = "paymentmethods";
-    const joinIdName2 = "paymentMethodId";
-    const joinName3 = "machines";
-    const joinIdName3 = "machineId";
-    const joinName4 = "companies";
-    const joinIdName4 = "companyId";
-    const joinName5 = "users";
-    const joinIdName5 = "userId";
-    const sortId = "orderId";
+    const joinName = "customers";
+    const joinIdName = "customerId";
+    const joinName2 = "machines";
+    const joinIdName2 = "machineId";
     const page = req.query.page || 1;
     const limit = req.query.limit || 10;
 
@@ -406,7 +275,7 @@ const orderService = {
     const endDate = req.query.endDate || null;
 
     try {
-      const result = await paginatefiveJoin(
+      const result = await paginatetwoJoinWhere(
         tableName,
         page,
         limit,
@@ -416,14 +285,7 @@ const orderService = {
         joinName,
         joinIdName,
         joinName2,
-        joinIdName2,
-        joinName3,
-        joinIdName3,
-        joinName4,
-        joinIdName4,
-        joinName5,
-        joinIdName5,
-        sortId
+        joinIdName2
       );
       return { success: true, ...result };
     } catch (error) {
